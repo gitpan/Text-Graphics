@@ -2,3 +2,4 @@ lib/Text/Graphics.pm
 Makefile.PL
 MANIFEST
 README
+test.pl

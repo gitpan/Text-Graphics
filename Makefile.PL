@@ -7,12 +7,9 @@
 # itself.
 # ====================================================================
 
-use lib "lib";
 use ExtUtils::MakeMaker;
-use Text::Graphics;
-use File::Path;
-use strict;
 
 WriteMakefile(
-	"NAME"	=>	"Text::Graphics",
+	      "NAME"	=>	"Text::Graphics",
+	      "PREREQ_PM" =>	{ "Text::Wrapper" => 0.007 }
 );

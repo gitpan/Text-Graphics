@@ -9,11 +9,11 @@
 ##
 ## Authors: Stephen Farrell & Jeremy Mayes (c) 1998
 ## Description: A Text::Graphics rendering toolkit
-## RCS $Id: Graphics.pm,v 1.6 1998/06/15 02:32:46 sfarrell Exp $
+## RCS $Id: Graphics.pm,v 1.11 1998/06/23 01:00:16 sfarrell Exp $
 ##
 
 package Text::Graphics;
-$Text::Graphics::VERSION = 1.0000;
+$Text::Graphics::VERSION = 1.0001;
 
 use Exporter;
 @ISA = qw(Exporter);
@@ -222,7 +222,7 @@ sub _getBoundaries {
 }
 
 ##
-## render ()
+## render ([scalar_ref])
 ##
 ## this is what is called to cause the page to render itself, not
 ## _drawSelf().  _drawSelf() should be thought of what is used in
@@ -230,15 +230,24 @@ sub _getBoundaries {
 ## thought of as something called externally to cause the whole
 ## heirarchy to display.
 ##
+## If a scalar ref is provided, then it renders into it; otherwise it
+## renders to STDOUT.
+##
 sub render {
   my $this = shift;
+  my $scalar_ref = shift;
   my $gc = Text::Graphics::GraphicsContext->new($this->{width},
 						$this->{height});
   
   $this->_drawBackground($gc);
   $this->_drawSelf($gc);
   
-  $gc->render();
+  if ($scalar_ref) {
+    $gc->renderToScalarRef($scalar_ref);
+  }
+  else {
+    $gc->renderToSTDOUT();
+  }
 }
 
 
@@ -604,7 +613,7 @@ sub setClippingRegion {
   $this->{y1} += shift;
 }
 
-sub render {
+sub renderToSTDOUT {
   my $this = shift;
   my $c;
   foreach my $y (0 .. $this->{height}) {
@@ -613,6 +622,19 @@ sub render {
       print (defined $c ? $c : " ");
     }
     print "\n";
+  }
+}
+
+sub renderToScalarRef {
+  my $this = shift;
+  my $scalar_ref = shift;
+  my $c;
+  foreach my $y (0 .. $this->{height}) {
+    foreach my $x (0 .. $this->{width}) {
+      $c = $this->{charmap}->[$y]->[$x];
+      $$scalar_ref .= (defined $c ? $c : " ");
+    }
+    $$scalar_ref .= "\n";
   }
 }
 
@@ -661,7 +683,6 @@ graphing, creating of complex forms for email and fax, and so on.
 
 
  use Text::Graphics;
- use Text::Graphics;
  my $text = "A text graphics rendering toolkit.\n";
  my $page = Text::Graphics::Page->new( 20, 10);
  my $panel0 = Text::Graphics::BorderedPanel->new( 20, 10);
@@ -701,9 +722,16 @@ Construct a new page with the specified width and height.
 
 Add a Panel at the specified offset.
 
-=item C<render ()>
+=item C<render ( [ scalar_reference ] )>
 
-Render the page.
+Render the page.  If an argument is given, it is assumed to be a
+SCALAR REFERENCE, and rendering will be done to such reference.  e.g.,
+if you want to render to $buf, you might do
+
+ $w->render(\ $buf);
+
+If no argument to render() is provided, then rendering is simply done
+to STDOUT using C<print>.
 
 
 =head2 C<Text::Graphics::Panel>
@@ -758,7 +786,8 @@ routine, it calls on the gc to draw a line:
  @ISA = qw (Panel);
 
  sub new {
-  my $this = shift;
+  my $this = {};
+  bless $this, shift;
   $this->{char} = shift;
   $this->{startx} = shift;
   $this->{starty} = shift;
